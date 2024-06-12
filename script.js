@@ -1,156 +1,188 @@
-//simula um banco de dados em memória
-var clientes = []
+// Simula um banco de dados em memória
+var clientes = [];
 
-//guarda o objeto que está sendo alterado
-var clienteAlterado = null
+// Guarda o objeto que está sendo alterado
+var clienteAlterado = null;
 
-function adicionar(){
-    //libera para digitar o CPF
-    document.getElementById("cpf").disabled = false
-    clienteAlterado = null
-    mostrarModal()
-    limparForm()
+function adicionar() {
+    // Libera para digitar o CPF
+    document.getElementById("cpf").disabled = false;
+    clienteAlterado = null;
+    mostrarModal();
+    limparForm();
 }
-function alterar(cpf){
 
-    //procurar o cliente que tem o CPF clicado no alterar
-    for(let i = 0; i < clientes.length; i++){
-        let cliente = clientes[i]
-        if (cliente.cpf == cpf){
-            //achou o cliente, entao preenche o form
-            document.getElementById("nome").value = cliente.nome
-            document.getElementById("cpf").value = cliente.cpf
-            document.getElementById("telefone").value = cliente.telefone
-            clienteAlterado = cliente
-        }
+function buscar(cpf) {
+    return clientes.find(cliente => cliente.cpf === cpf);
+}
+
+function alterar(cpf) {
+    // Procurar o cliente que tem o CPF clicado no alterar
+    const cliente = buscar(cpf);
+    if (cliente) {
+        // Achou o cliente, então preenche o form
+        document.getElementById("nome").value = cliente.nome;
+        document.getElementById("cpf").value = cliente.cpf;
+        document.getElementById("telefone").value = cliente.telefone;
+        document.getElementById("whatsapp").value = cliente.whatsapp;
+        document.getElementById("acoes").value = cliente.acoes;
+        clienteAlterado = cliente;
+        // Bloquear o CPF para não permitir alterá-lo
+        document.getElementById("cpf").disabled = true;
+        mostrarModal();
+    } else {
+        alert("Cliente não encontrado");
     }
-    //bloquear o cpf para nao permitir alterá-lo
-    document.getElementById("cpf").disabled = true
-    mostrarModal()
 }
-function excluir(cpf){
-    if (confirm("Você deseja realmente excluir?")){
-        //TODO: Chamar o back para excluir o cliente
-        fetch("http://localhost:3000/excluir/"+ cpf, {
+
+function excluir(cpf) {
+    if (confirm("Você deseja realmente excluir?")) {
+        fetch("http://localhost:3000/excluir/" + cpf, {
             headers: {
-                "content-type": "application/json"
+                "Content-type": "application/json"
             },
             method: "DELETE"
-        }).then((response) => {
-            //após terminar de excluir, recarrega a lista 
-            //de clientes
-            recarregarClientes()
-            alert("Cliente excluído com sucesso")
-        }).catch((error) => {
-            console.log(error)
-            alert("Não foi possível excluir o cliente")
         })
-        
-        
+        .then(response => {
+            // Após terminar de excluir, recarrega a lista de clientes. 
+            recarregarClientes();
+            alert("Cliente excluído com sucesso");
+        })
+        .catch(error => {
+            console.log(error);
+            alert("Não foi possível excluir o cliente");
+        });
     }
 }
 
-function mostrarModal(){
-    let containerModal = document.getElementById("container-modal")
-    containerModal.style.display = "flex"
+function mostrarModal() {
+    let containerModal = document.getElementById("container-modal");
+    containerModal.style.display = "flex";
 }
-function ocultarModal(){
-    let containerModal = document.getElementById("container-modal")
-    containerModal.style.display = "none"
-}
-function cancelar(){
-    ocultarModal()
-    limparForm()
-}
-function salvar(){
-    let nome = document.getElementById("nome").value
-    let cpf = document.getElementById("cpf").value
-    let telefone = document.getElementById("telefone").value
 
-    //se não estiver alterando ninguém, adiciona no vetor
-    if (clienteAlterado == null){
+function ocultarModal() {
+    let containerModal = document.getElementById("container-modal");
+    containerModal.style.display = "none";
+}
+
+function cancelar() {
+    ocultarModal();
+    limparForm();
+}
+
+function salvar() {
+    let nome = document.getElementById("nome").value;
+    let cpf = document.getElementById("cpf").value;
+    let telefone = document.getElementById("telefone").value;
+    let whatsapp = document.getElementById("whatsapp").value;
+    let acoes = document.getElementById("acoes").value;
+
+    // Se não estiver alterando ninguém, adiciona no vetor
+    if (clienteAlterado == null) {
         let cliente = {
             "nome": nome,
             "cpf": cpf,
-            "telefone": telefone
-        }
+            "telefone": telefone,
+            "whatsapp": whatsapp,
+            "acoes": acoes
+        };
 
-
-        //salvar o cliente no back-end
-        fetch("http://localhost:3000/cadastrar", {
-            headers:{
+        // Salva o cliente no back-end
+        fetch("http://localhost:3000/cadastrar", {    
+            headers: {
                 "Content-type": "application/json"
             },
             method: "POST",
             body: JSON.stringify(cliente)
-        }).then (() => {
-            alert("Cliente cadastrado com sucesso")
-        }).catch(() =>{
-            alert("Ops... Algo deu errado")
-        }) 
-        
-        //adiciona o objeto cliente no vetor de clientes
-        clientes.push(cliente)
-    }else{
-        clienteAlterado.nome = nome
-        clienteAlterado.cpf = cpf
-        clienteAlterado.telefone = telefone
+        })
+        .then(() => {
+            alert("Cliente cadastrado com sucesso");
+            // Adiciona o objeto cliente no vetor de clientes
+            clientes.push(cliente);
+            exibirDados(); // Atualiza a exibição dos dados na tabela
+        })
+        .catch(() => {
+            alert("Ops... algo deu errado");
+        });
+    } else {
+        clienteAlterado.nome = nome;
+        clienteAlterado.telefone = telefone;
+        clienteAlterado.whatsapp = whatsapp;
+        clienteAlterado.acoes = acoes;
+
+        fetch("http://localhost:3000/alterar", {
+            headers: {
+                "Content-type": "application/json"
+            },
+            method: "PUT",
+            body: JSON.stringify(clienteAlterado)
+        })
+        .then(response => {
+            recarregarClientes();
+            alert("Cliente alterado com sucesso");
+        })
+        .catch(error => {
+            alert("Não foi possível alterar o cliente");
+        });
     }
 
-    clienteAlterado = null
+    clienteAlterado = null;
 
-    //limpa o form
-    limparForm()
+    // Limpa o form
+    limparForm();
 
-    ocultarModal()
-
-    exibirDados()
+    ocultarModal();
 }
 
-function exibirDados(){
+function exibirDados() {
+    let tbody = document.querySelector("#table-customers tbody");
 
-    let tbody = document.querySelector("#table-customers tbody")
+    // Limpa todas as linhas antes de listar os clientes
+    tbody.innerHTML = "";
 
-    //antes de listar os clientes, limpa todas as linhas
-    tbody.innerHTML = ""
-
-    for(let i = 0; i < clientes.length; i++){
+    for (let i = 0; i < clientes.length; i++) {
         let linha = `
         <tr>
             <td>${clientes[i].nome}</td>
             <td>${clientes[i].cpf}</td>
             <td>${clientes[i].telefone}</td>
+            <td>${clientes[i].whatsapp}</td>
+            <td>${clientes[i].acoes}</td>
             <td>
                 <button onclick="alterar('${clientes[i].cpf}')">Alterar</button>
                 <button onclick="excluir('${clientes[i].cpf}')" class="botao-excluir">Excluir</button>
             </td>
-        </tr>`
+        </tr>`;
         
-        let tr = document.createElement("tr")
-        tr.innerHTML = linha
+        let tr = document.createElement("tr");
+        tr.innerHTML = linha;
 
-        tbody.appendChild(tr)
+        tbody.appendChild(tr);
     }
-
 }
-function limparForm(){
-    document.getElementById("nome").value = ""
-    document.getElementById("cpf").value = ""
-    document.getElementById("telefone").value = ""
 
+function limparForm() {
+    document.getElementById("nome").value = "";
+    document.getElementById("cpf").value = "";
+    document.getElementById("telefone").value = "";
+    document.getElementById("whatsapp").value = "";
+    document.getElementById("acoes").value = "";
 }
-function recarregarClientes(){
-    fetch("http:/localhost:3000/listar", {
+
+function recarregarClientes() {
+    fetch("http://localhost:3000/listar", {    
         headers: {
             "Content-type": "application/json"
         },
-        method: "GET"   
-    }).then((response) => response.json()) //converte a resposta
-    .then((response) => {
-        console.log(response) 
-        clientes = response //recebe o clientes do back-end
-        exibirDados()
-    }).catch((error) => {
-        alert("Erro ao listar os clientes")
+        method: "GET"
     })
+    .then(response => response.json()) // Converte a resposta para JSON
+    .then(response => {
+        console.log(response);
+        clientes = response; // Recebe os clientes do back-end
+        exibirDados();
+    })
+    .catch(error => {
+        alert("Erro ao listar clientes");
+    });
 }
